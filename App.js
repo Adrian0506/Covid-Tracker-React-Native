@@ -1,8 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StyleSheet, Text, View, Dimensions, ScrollView} from 'react-native';
+import { StyleSheet, Text, View, Dimensions, ScrollView, Animated} from 'react-native';
 import Axios from 'axios'
 import { NavigationBar } from '@shoutem/ui'
+import { NavigationContainer } from '@react-navigation/native';
+import Favorite from './Components/Favorite.js'
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+
 import {
   LineChart,
   BarChart,
@@ -11,6 +16,8 @@ import {
   ContributionGraph,
   StackedBarChart
 } from "react-native-chart-kit";
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -26,14 +33,16 @@ const screenWidth = Dimensions.get("window").width;
       count: 0,
       cases: 0,
       postiveCase: 0,
-      weekCovid: [0,0,0,0,0,0,0]
+      weekCovid: [0,0,0,0,0,0,0],
+      fadeOut: new Animated.Value(0)
     }
   }
 
-  increment() {
-    this.setState({
-      count: this.state.count + 1
-    })
+  fadeOut = () => {
+     Animated.timing(this.state.fadeOut, {
+       toValue: 0,
+       duration: 1000
+     })
   }
 
   componentDidMount() {
@@ -61,23 +70,32 @@ const screenWidth = Dimensions.get("window").width;
     })
   }
 
+
+  numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+  
   render () {
   
   return (
     <View style={styles.container}>
+      <View style = {styles.nav}></View>
       <View style = {styles.nav}>
      <Text style = {styles.covtext}>Covid-Tracker</Text>
       </View>
       <View style = {styles.graph}>
-      <Text>Seven day growth</Text>
+      <Text style = {styles.sevenDayGrowth}>Seven day growth</Text>
       <LineGraph props = {this.state.weekCovid}></LineGraph>
       </View>
-      <Text>{this.state.currentState}</Text>
+      <View style = {styles.cases}>
+      <Text style = {styles.currentState}>{this.state.currentState}</Text>
+      <Text style = {styles.posColor}>{this.numberWithCommas(this.state.cases)}</Text>
+      </View>
       <StatusBar style="auto" />
       <Text>Covid Cases: {this.state.cases}</Text>
       <Text>Cases Today: {this.state.postiveCase}</Text>
-      <Text>{this.state.count}</Text>
-      <Text onPress = {this.increment.bind(this)}>Increment Counter</Text>
+
     </View>
   );
 }
@@ -107,7 +125,7 @@ const LineGraph = function (props) {
     width= {340} // from react-native
     height={220}
     yAxisLabel=""
-    yAxisSuffix="k"
+    yAxisSuffix=""
     yAxisInterval={1} // optional, defaults to 1
     chartConfig={{
       backgroundColor: "#e26a00",
@@ -160,10 +178,73 @@ const styles = StyleSheet.create({
     color: 'white'
   },
   graph: {
-    top: '-15%'
+    top: '-10%'
+  },
+  cases: {
+    backgroundColor: "rgba(230,230, 230,1)",
+    borderWidth: 0,
+    borderColor: "#000000",
+    borderRadius: 71,
+    width: 311,
+    height: 85
+  },
+  posColor: {
+    color: '#8ACA2B',
+    fontSize: 30,
+    left: '22%',
+    top: '10%',
+    fontWeight: "bold"
+  },
+  currentState: {
+    fontWeight: "bold",
+    left: "28%",
+    top: "5%"
+  },
+  ani: {
+    width:100,
+    height:"100%",
+    backgroundColor: 'purple'
+  },
+  sevenDayGrowth: {
+    fontWeight: "bold",
+    left: "30%"
   }
 });
 
 
 
-export default App;
+
+const Tab = createBottomTabNavigator();
+
+function Tabber () {
+  return (
+    <Tab.Navigator>
+    <Tab.Screen name="Home" component={App} options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="home" color={color} size={size} />
+          ),
+        }}
+ />
+    <Tab.Screen name="Favorites" component={Favorite} options={{
+          tabBarLabel: 'Favorites',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="star" color={color} size={size} />
+          ),
+        }}/>
+  </Tab.Navigator>
+
+  )
+}
+
+function Apps () {
+  return (
+    <NavigationContainer>
+     <Tabber/>
+    </NavigationContainer>
+
+
+  )
+}
+
+export default Apps;
