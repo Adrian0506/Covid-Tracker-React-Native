@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StyleSheet, Text, View, Dimensions, ScrollView} from 'react-native';
+import { StyleSheet, Text, View, Dimensions, ScrollView, AsyncStorage} from 'react-native';
 import Axios from 'axios'
 import { NavigationBar } from '@shoutem/ui'
 import { NavigationContainer } from '@react-navigation/native';
@@ -15,13 +15,24 @@ import { NavigationContainer } from '@react-navigation/native';
       favorites: []
     }
   }
+
+  componentDidMount () {
+  AsyncStorage.getAllKeys().then(data => {
+    console.log(data)
+    this.setState({
+      favorites: data
+    })
+  })
+}
    render () {
    return (
     <View style = {styles.container}>
      <View style = {styles.nav}>
       <Text style = {styles.covtext}>Covid-Tracker</Text>
      </View>
-     {this.state.favorites.length !== 0 ? <Text>You have favs</Text> : <Text>Hmm... it looks like you have no favorites</Text>}
+     {this.state.favorites.length !== 0 ? this.state.favorites.map(item => {
+       return <Text>{item}</Text>
+     }) : <Text>Hmm... it looks like you have no favorites</Text>}
      </View>
 
   )
