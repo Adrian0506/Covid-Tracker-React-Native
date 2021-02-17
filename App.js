@@ -59,7 +59,7 @@ class Apps extends React.Component {
      this.setState({
        loader: false
      })
-    }, 2000) 
+    }, 2500) 
    if (this.state.loader === true) {
      return (
        <View style = {styles.container}>

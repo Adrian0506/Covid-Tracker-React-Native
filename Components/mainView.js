@@ -6,7 +6,9 @@ import { NavigationBar } from '@shoutem/ui'
 import { NavigationContainer } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LineGraph from './LineGraph.js'
-
+import LottieView from 'lottie-react-native';
+import MenuDrawer from 'react-native-side-drawer'
+import Slider from './Slider.js'
 import {
   LineChart,
   BarChart,
@@ -37,7 +39,9 @@ class App extends React.Component {
       loader: true,
       allPlaces: [],
       status: false,
-      currentlySelected: 'USA'
+      currentlySelected: 'USA',
+      approved: false,
+      deathCase: 0
     }
   }
 
@@ -52,7 +56,8 @@ class App extends React.Component {
     Axios('https://api.covidtracking.com/v1/us/current.json').then(datas => {
       this.setState({
         cases: datas.data[0].positive,
-        postiveCase: datas.data[0].positiveIncrease
+        postiveCase: datas.data[0].positiveIncrease,
+        deathCase: datas.data[0].death
       })
     })
 
@@ -102,16 +107,32 @@ class App extends React.Component {
       this.setState({
         currentState: `Global ${covid.data.state} cases`,
         cases: covid.data.positive,
-        currentlySelected: covid.data.state
+        currentlySelected: covid.data.state,
+        postiveCase: covid.data.positiveIncrease,
+        deathCase: covid.data.death,
+        status: false
+      })
+    })
+
+    Axios(`https://api.covidtracking.com/v1/states/${arg}/daily.json`).then(covid => {
+      this.setState({
+      weekCovid: [covid.data[0].positiveIncrease, covid.data[1].positiveIncrease, covid.data[2].positiveIncrease,covid.data[3].positiveIncrease, covid.data[4].positiveIncrease, covid.data[5].positiveIncrease, covid.data[6].positiveIncrease]
       })
     })
   }
 
   async performSave(arg) {
-    console.log(arg)
     try {
       await AsyncStorage.setItem(this.state.currentlySelected, this.state.currentState)
-      console.log('Item was saved')
+       this.setState({
+         approved: true
+       })
+
+       setTimeout(() => {
+         this.setState({
+        approved: false
+      })
+       }, 1500)
     } catch (error) {
       console.log(error)
     }
@@ -121,14 +142,14 @@ class App extends React.Component {
     if (this.state.currentState === 'Global USA cases') {
       return (
         <View style={styles.container}>
+          {this.state.approved ? <LottieView source = {require('../assets/check.json')} autoPlay/> : null }
+          <Slider props = {this.state.allPlaces} populateFunc = {this.renderState.bind(this)}></Slider>
+
           <View style={styles.nav}></View>
           <View style={styles.nav}>
             <Text style={styles.covtext}>Covid-Tracker</Text>
-            <Text style={styles.menu} onPress={this.changeStatus.bind(this)}>Menu</Text>
           </View>
-          {this.state.status ? <ScrollView style={styles.scroller}>{this.state.allPlaces.map(item => {
-            return <Text onPress={this.renderState.bind(this, item.state)}>{item.state}</Text>
-          })}</ScrollView> : null}
+        
           <View style={styles.graph}>
             <Text style={styles.sevenDayGrowth}>Seven day growth</Text>
             <LineGraph props={this.state.weekCovid}></LineGraph>
@@ -139,26 +160,26 @@ class App extends React.Component {
           </View>
           <StatusBar style="auto" />
           <View style={styles.casesToday}>
-            <Text>Cases Today</Text>
+            <Text style = {styles.posCase}>Cases Today</Text>
             <Text style={styles.posText}>{this.state.postiveCase}</Text>
           </View>
           <View style={styles.deaths}>
-            <Text>Deaths Today</Text>
-            <Text style={styles.deathText}>{this.state.postiveCase}</Text>
+            <Text style = {styles.posCase}>Total Death</Text>
+            <Text style={styles.deathText}>{this.state.deathCase}</Text>
           </View>
         </View>
       );
     } else {
       return (
         <View style={styles.container}>
+          {this.state.approved ? <LottieView style = {{zIndex: 5}}source = {require('../assets/checks.json')} autoPlay/> : null }
+          <Slider props = {this.state.allPlaces} populateFunc = {this.renderState.bind(this)}></Slider>
+
           <View style={styles.nav}></View>
           <View style={styles.nav}>
             <Text style={styles.covtext}>Covid-Tracker</Text>
-            <Text style={styles.menu} onPress={this.changeStatus.bind(this)}>Menu</Text>
           </View>
-          {this.state.status ? <ScrollView style={styles.scroller}>{this.state.allPlaces.map(item => {
-            return <Text onPress={this.renderState.bind(this, item.state)}>{item.state}</Text>
-          })}</ScrollView> : null}
+
           <View style={styles.graph}>
             <Text style={styles.sevenDayGrowth}>Seven day growth</Text>
             <LineGraph props={this.state.weekCovid}></LineGraph>
@@ -169,14 +190,14 @@ class App extends React.Component {
           </View>
           <StatusBar style="auto" />
           <View style={styles.casesToday}>
-            <Text>Cases Today</Text>
+            <Text style = {styles.posCase}>Cases Today</Text>
             <Text style={styles.posText}>{this.state.postiveCase}</Text>
           </View>
           <View style={styles.deaths}>
-            <Text>Deaths Today</Text>
-            <Text style={styles.deathText}>{this.state.postiveCase}</Text>
+            <Text style = {styles.posCase}>Total death</Text>
+            <Text style={styles.deathText}>{this.state.deathCase}</Text>
           </View>
-          <Text onPress={this.performSave.bind(this, this.state.currentlySelected)}>Save to your favorites.</Text>
+          <Button title = 'Save to your favorites.' backgroundColor = '#f194ff' onPress={this.performSave.bind(this, this.state.currentlySelected)}></Button>
         </View>
       );
     }
@@ -202,7 +223,8 @@ const styles = StyleSheet.create({
     left: '38%',
     fontWeight: 'bold',
     top: '59%',
-    color: 'white'
+    color: 'white',
+    zIndex: 20
   },
   graph: {
     top: '0%'
@@ -252,6 +274,7 @@ const styles = StyleSheet.create({
     borderRadius: 71,
     width: 130,
     left: "-20%",
+    top: "1%",
     height: 85
   },
   deaths: {
@@ -261,23 +284,34 @@ const styles = StyleSheet.create({
     borderRadius: 71,
     width: 130,
     left: "20%",
-    top: "-11%",
+    top: "-10.5%",
     height: 85
   },
   deathText: {
     color: "red",
-    fontWeight: "bold"
+    fontWeight: "bold",
+    left: '30%',
+    top: '20%'
   },
   posText: {
     fontWeight: "bold",
-    color: '#8080FF'
+    color: '#8080FF',
+    left: '30%',
+    top: '20%'
   },
   scroller: {
     backgroundColor: '#563d7c',
     marginHorizontal: 20,
     width: 200,
-    height: 400,
-    left: -40
+    height: '100%',
+    left: -100,
+    top: 350,
+    zIndex: 5
+  },
+  posCase: {
+    fontWeight: 'bold',
+    left: '15%',
+    top: '10%'
   }
 });
 
